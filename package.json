@@ -1,12 +1,17 @@
 {
   "name": "fotograf-app",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Aplikacja do nauki do egzaminu czeladniczego z fotografii",
+  "main": "api/index.py",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "python api/index.py",
+    "build": "echo 'Build complete'"
   },
-  "keywords": [],
+  "keywords": ["fotografia", "egzamin", "czeladnik", "nauka"],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "flask": "^3.0.0",
+    "flask-cors": "^4.0.0"
+  }
 }
