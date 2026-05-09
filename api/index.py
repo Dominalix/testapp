@@ -505,16 +505,16 @@ def reset_progress():
 def serve_frontend():
     access = request.args.get('access')
     if access == 'papiezpolak':
-        response = send_from_directory('../frontend/public', 'index.html')
+        response = send_from_directory('frontend/public', 'index.html')
         response.set_cookie('fotograf_access', 'granted', max_age=86400)  # 24 hours
         return response
     else:
-        return send_from_directory('../frontend/public', 'protected.html')
+        return send_from_directory('frontend/public', 'protected.html')
 
 @app.route('/app/<path:filename>')
 def static_files(filename):
     access = request.cookies.get('fotograf_access')
     if access == 'granted':
-        return send_from_directory('../frontend/public', filename)
+        return send_from_directory('frontend/public', filename)
     else:
-        return send_from_directory('../frontend/public', 'protected.html')
+        return send_from_directory('frontend/public', 'protected.html')
