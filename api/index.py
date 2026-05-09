@@ -505,14 +505,30 @@ def reset_progress():
 def serve_frontend():
     access = request.args.get('access')
     if access == 'papiezpolak':
-        return send_from_directory('.', 'index.html')
+        return '''
+<!DOCTYPE html>
+<html>
+<head><title>Fotograf App</title></head>
+<body>
+    <h1>📷 FOTOGRAF CZELADNIK</h1>
+    <h2>Frontend working!</h2>
+    <p><a href="/api/chapters">Test API</a></p>
+    <p><a href="/api/stats">Statystyki</a></p>
+</body>
+</html>
+        '''
     else:
-        return send_from_directory('.', 'protected.html')
+        return '''
+<!DOCTYPE html>
+<html>
+<head><title>Login</title></head>
+<body>
+    <h1>Enter password</h1>
+    <a href="/app?access=papiezpolak">Login</a>
+</body>
+</html>
+        '''
 
 @app.route('/app/<path:filename>')
 def static_files(filename):
-    access = request.cookies.get('fotograf_access')
-    if access == 'granted':
-        return send_from_directory('.', filename)
-    else:
-        return send_from_directory('.', 'protected.html')
+    return "Static files disabled"
