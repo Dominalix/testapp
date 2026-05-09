@@ -15,7 +15,8 @@ CORS(app)
 # Simple password protection only
 
 # Database setup
-DB_PATH = os.path.join(os.path.dirname(__file__), '../fotograf.db')
+# Use /tmp for Vercel serverless environment, fallback to local path
+DB_PATH = os.environ.get('VERCEL') == '1' and '/tmp/fotograf.db' or os.path.join(os.path.dirname(__file__), '../fotograf.db')
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -520,7 +521,9 @@ def static_files(filename):
     else:
         return send_from_directory('../frontend/public', 'protected.html')
 
+# Initialize database for serverless environment
+init_db()
+
 if __name__ == '__main__':
-    init_db()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
