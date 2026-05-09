@@ -502,12 +502,27 @@ def reset_progress():
     conn.close()
     return jsonify({'ok': True})
 
+# Serve frontend with password protection
+@app.route('/')
+def index():
+    access = request.args.get('access')
+    if access == 'papiezpolak':
+        response = send_from_directory('../frontend/public', 'index.html')
+        response.set_cookie('fotograf_access', 'granted', max_age=86400)  # 24 hours
+        return response
+    else:
+        return send_from_directory('../frontend/public', 'protected.html')
+
+@app.route('/<path:filename>')
+def static_files(filename):
+    access = request.cookies.get('fotograf_access')
+    if access == 'granted':
+        return send_from_directory('../frontend/public', filename)
+    else:
+        return send_from_directory('../frontend/public', 'protected.html')
+
 # Initialize database for serverless environment
 init_db()
-
-# Vercel serverless function handler
-def handler(request):
-    return app(request.environ, lambda status, headers: None)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
