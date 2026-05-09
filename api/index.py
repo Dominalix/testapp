@@ -1,9 +1,11 @@
-def handler(request):
-    return {
-        'statusCode': 200,
-        'headers': {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-        },
-        'body': '{"message": "Minimal test working!"}'
-    }
+from flask import Flask, jsonify
+
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return jsonify({"message": "Flask app working!"})
+
+@app.route('/api/test')
+def test():
+    return jsonify({"status": "API working!"})
