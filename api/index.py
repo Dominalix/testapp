@@ -12,52 +12,7 @@ from functools import wraps
 app = Flask(__name__)
 CORS(app)
 
-# Security settings
-ALLOWED_IPS = []  # Add your IP addresses here
-BLOCKED_IPS = []  # Add IPs to block
-RATE_LIMIT = {}
-MAX_REQUESTS_PER_MINUTE = 30
-
-def get_client_ip():
-    if request.headers.getlist("X-Forwarded-For"):
-        return request.headers.getlist("X-Forwarded-For")[0].split(',')[0].strip()
-    elif request.headers.get("X-Real-IP"):
-        return request.headers.get("X-Real-IP")
-    else:
-        return request.remote_addr
-
-def rate_limit(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        ip = get_client_ip()
-        current_time = int(time.time())
-        
-        # Clean old entries
-        for old_ip in list(RATE_LIMIT.keys()):
-            if current_time - RATE_LIMIT[old_ip]['timestamp'] > 60:
-                del RATE_LIMIT[old_ip]
-        
-        # Check rate limit
-        if ip not in RATE_LIMIT:
-            RATE_LIMIT[ip] = {'count': 0, 'timestamp': current_time}
-        
-        if current_time - RATE_LIMIT[ip]['timestamp'] < 60:
-            if RATE_LIMIT[ip]['count'] >= MAX_REQUESTS_PER_MINUTE:
-                return jsonify({'error': 'Rate limit exceeded'}), 429
-            RATE_LIMIT[ip]['count'] += 1
-        else:
-            RATE_LIMIT[ip] = {'count': 1, 'timestamp': current_time}
-        
-        # Check if IP is blocked
-        if ip in BLOCKED_IPS:
-            return jsonify({'error': 'Access denied'}), 403
-        
-        # Check if IP is allowed (if whitelist is not empty)
-        if ALLOWED_IPS and ip not in ALLOWED_IPS:
-            return jsonify({'error': 'Access denied'}), 403
-            
-        return f(*args, **kwargs)
-    return decorated_function
+# Simple password protection only
 
 # Database setup
 DB_PATH = os.path.join(os.path.dirname(__file__), '../fotograf.db')
@@ -139,7 +94,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 # Chapters endpoints
 @app.route('/api/chapters', methods=['GET'])
-@rate_limit
 def get_chapters():
     conn = get_db()
     chapters = conn.execute('''
@@ -157,7 +111,6 @@ def get_chapters():
 
 # Questions endpoints
 @app.route('/api/questions', methods=['GET'])
-@rate_limit
 def get_questions():
     chapter_id = request.args.get('chapter_id')
     conn = get_db()
@@ -273,7 +226,6 @@ def get_questions():
 
 # Test generation endpoint
 @app.route('/api/test/generate', methods=['POST'])
-@rate_limit
 def generate_test():
     data = request.json
     chapter_id = data.get('chapter_id')
@@ -403,7 +355,6 @@ def generate_test():
 
 # Answer submission endpoint
 @app.route('/api/test/answer', methods=['POST'])
-@rate_limit
 def record_answer():
     data = request.json
     conn = get_db()
@@ -418,7 +369,6 @@ def record_answer():
 
 # Test completion endpoint
 @app.route('/api/test/finish', methods=['POST'])
-@rate_limit
 def finish_test():
     data = request.json
     sid = data.get('session_id')
@@ -435,7 +385,6 @@ def finish_test():
 
 # Statistics endpoint
 @app.route('/api/stats', methods=['GET'])
-@rate_limit
 def get_stats():
     conn = get_db()
     
@@ -493,7 +442,6 @@ def get_stats():
 
 # Question history endpoint
 @app.route('/api/question/<qid>/history', methods=['GET'])
-@rate_limit
 def question_history(qid):
     conn = get_db()
     history = conn.execute('''
@@ -510,7 +458,6 @@ def question_history(qid):
 
 # Session details endpoint
 @app.route('/api/session/<sid>/details', methods=['GET'])
-@rate_limit
 def session_details(sid):
     conn = get_db()
     session = conn.execute('''
@@ -543,7 +490,6 @@ def session_details(sid):
 
 # Reset endpoint
 @app.route('/api/reset', methods=['POST'])
-@rate_limit
 def reset_progress():
     secret = request.json.get('secret')
     if secret != 'RESETASTER2137':
@@ -559,7 +505,7 @@ def reset_progress():
 @app.route('/')
 def index():
     access = request.args.get('access')
-    if access == 'wasze-haslo':
+    if access == 'papiezpolak':
         response = send_from_directory('../frontend/public', 'index.html')
         response.set_cookie('fotograf_access', 'granted', max_age=86400)  # 24 hours
         return response
