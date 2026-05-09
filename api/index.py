@@ -527,95 +527,16 @@ def static_files(filename):
 init_db()
 
 # Vercel serverless function handler
-class handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        # Create a mock WSGI environment for Flask
-        environ = {
-            'REQUEST_METHOD': 'GET',
-            'PATH_INFO': self.path,
-            'SERVER_NAME': 'vercel.app',
-            'SERVER_PORT': '443',
-            'wsgi.url_scheme': 'https',
-            'wsgi.input': self.rfile,
-            'wsgi.errors': self.server.error_log,
-            'wsgi.multithread': False,
-            'wsgi.multiprocess': False,
-            'wsgi.run_once': False,
-            'CONTENT_TYPE': self.headers.get('Content-Type', ''),
-            'CONTENT_LENGTH': self.headers.get('Content-Length', '0'),
-            'HTTP_HOST': self.headers.get('Host', ''),
-            'HTTP_USER_AGENT': self.headers.get('User-Agent', ''),
-            'HTTP_ACCEPT': self.headers.get('Accept', ''),
-            'HTTP_ACCEPT_LANGUAGE': self.headers.get('Accept-Language', ''),
-            'HTTP_ACCEPT_ENCODING': self.headers.get('Accept-Encoding', ''),
-            'HTTP_CONNECTION': self.headers.get('Connection', ''),
-            'HTTP_UPGRADE_INSECURE_REQUESTS': self.headers.get('Upgrade-Insecure-Requests', ''),
-            'HTTP_COOKIE': self.headers.get('Cookie', ''),
-        }
-        
-        # Add all other headers
-        for header, value in self.headers.items():
-            environ[f'HTTP_{header.upper().replace("-", "_")}'] = value
-        
-        def start_response(status, headers):
-            self.send_response(int(status.split()[0]))
-            for header, value in headers:
-                self.send_header(header, value)
-            self.end_headers()
-        
-        # Call Flask app
-        result = app(environ, start_response)
-        
-        # Write response
-        for data in result:
-            if isinstance(data, str):
-                self.wfile.write(data.encode())
-            else:
-                self.wfile.write(data)
-        return
-    
-    def do_POST(self):
-        # Similar to do_GET but for POST requests
-        environ = {
-            'REQUEST_METHOD': 'POST',
-            'PATH_INFO': self.path,
-            'SERVER_NAME': 'vercel.app',
-            'SERVER_PORT': '443',
-            'wsgi.url_scheme': 'https',
-            'wsgi.input': self.rfile,
-            'wsgi.errors': self.server.error_log,
-            'wsgi.multithread': False,
-            'wsgi.multiprocess': False,
-            'wsgi.run_once': False,
-            'CONTENT_TYPE': self.headers.get('Content-Type', ''),
-            'CONTENT_LENGTH': self.headers.get('Content-Length', '0'),
-            'HTTP_HOST': self.headers.get('Host', ''),
-            'HTTP_USER_AGENT': self.headers.get('User-Agent', ''),
-            'HTTP_ACCEPT': self.headers.get('Accept', ''),
-            'HTTP_ACCEPT_LANGUAGE': self.headers.get('Accept-Language', ''),
-            'HTTP_ACCEPT_ENCODING': self.headers.get('Accept-Encoding', ''),
-            'HTTP_CONNECTION': self.headers.get('Connection', ''),
-            'HTTP_UPGRADE_INSECURE_REQUESTS': self.headers.get('Upgrade-Insecure-Requests', ''),
-            'HTTP_COOKIE': self.headers.get('Cookie', ''),
-        }
-        
-        for header, value in self.headers.items():
-            environ[f'HTTP_{header.upper().replace("-", "_")}'] = value
-        
-        def start_response(status, headers):
-            self.send_response(int(status.split()[0]))
-            for header, value in headers:
-                self.send_header(header, value)
-            self.end_headers()
-        
-        result = app(environ, start_response)
-        
-        for data in result:
-            if isinstance(data, str):
-                self.wfile.write(data.encode())
-            else:
-                self.wfile.write(data)
-        return
+def handler(request):
+    # Simple test response first
+    return {
+        'statusCode': 200,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
+        'body': '{"message": "Flask app loaded!", "status": "working"}'
+    }
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
