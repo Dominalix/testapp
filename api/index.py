@@ -516,34 +516,3 @@ def static_files(filename):
         return send_from_directory('.', filename)
     else:
         return send_from_directory('.', 'protected.html')
-
-# Serve frontend with password protection
-@app.route('/app')
-def serve_frontend():
-    access = request.args.get('access')
-    if access == 'papiezpolak':
-        return '''
-<!DOCTYPE html>
-<html>
-<head><title>Test</title></head>
-<body>
-    <h1>Frontend working!</h1>
-    <p>API: <a href="/api/chapters">/api/chapters</a></p>
-</body>
-</html>
-        '''
-    else:
-        return '''
-<!DOCTYPE html>
-<html>
-<head><title>Login</title></head>
-<body>
-    <h1>Enter password</h1>
-    <a href="/app?access=papiezpolak">Login</a>
-</body>
-</html>
-        '''
-
-@app.route('/app/<path:filename>')
-def static_files(filename):
-    return "Static files disabled for testing"
