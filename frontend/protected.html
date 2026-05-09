@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fotograf Czeladnik — Dostęp chroniony</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --bg2: #111111;
+      --surface: #1e1e1e;
+      --border: #2a2a2a;
+      --text: #e8e4dc;
+      --text2: #999;
+      --amber: #f0a500;
+      --amber2: #c78500;
+      --amber-glow: rgba(240, 165, 0, 0.12);
+      --radius: 6px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      max-width: 300px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      letter-spacing: 0.15em;
+      color: var(--amber);
+      margin-bottom: 2rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.9rem;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--amber);
+      box-shadow: 0 0 0 2px var(--amber-glow);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--amber);
+      border: none;
+      border-radius: var(--radius);
+      color: var(--bg);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: var(--amber2);
+      transform: translateY(-1px);
+    }
+
+    .error {
+      color: #e05252;
+      font-size: 0.7rem;
+      margin-top: 0.5rem;
+      font-family: 'DM Mono', monospace;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">📷 FOTOGRAF</div>
+    
+    <div class="form-group">
+      <input type="password" id="password" placeholder="Hasło..." autocomplete="current-password">
+      <div id="error" class="error">Błędne hasło</div>
+    </div>
+    
+    <button class="btn" onclick="checkPassword()">Odblokuj</button>
+  </div>
+
+  <script>
+    const correctPassword = 'papiezpolak';
+    
+    function checkPassword() {
+      const password = document.getElementById('password').value;
+      const errorDiv = document.getElementById('error');
+      
+      if (password === correctPassword) {
+        localStorage.setItem('fotograf_access', 'granted');
+        localStorage.setItem('fotograf_timestamp', Date.now());
+        window.location.href = '/?access=papiezpolak';
+      } else {
+        errorDiv.style.display = 'block';
+        document.getElementById('password').value = '';
+        document.getElementById('password').focus();
+      }
+    }
+    
+    window.addEventListener('load', function() {
+      const access = localStorage.getItem('fotograf_access');
+      const timestamp = localStorage.getItem('fotograf_timestamp');
+      
+      if (access === 'granted' && timestamp && (Date.now() - parseInt(timestamp)) < 24 * 60 * 60 * 1000) {
+        window.location.href = '/?access=wasze-haslo';
+      }
+    });
+    
+    document.getElementById('password').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') checkPassword();
+    });
+  </script>
+</body>
+</html>
