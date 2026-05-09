@@ -99,7 +99,6 @@
       font-size: 0.7rem;
       margin-top: 0.5rem;
       font-family: 'DM Mono', monospace;
-      display: none;
     }
   </style>
 </head>
@@ -109,14 +108,14 @@
     
     <div class="form-group">
       <input type="password" id="password" placeholder="Hasło..." autocomplete="current-password">
-      <div id="error" class="error">Błędne hasło</div>
+      <div id="error" class="error" style="display: none;">Błędne hasło</div>
     </div>
     
     <button class="btn" onclick="checkPassword()">Odblokuj</button>
   </div>
 
   <script>
-    const correctPassword = 'papiezpolak';
+    const correctPassword = 'wasze-haslo'; // ZMIEŃ NA WASZE HASŁO
     
     function checkPassword() {
       const password = document.getElementById('password').value;
@@ -125,7 +124,7 @@
       if (password === correctPassword) {
         localStorage.setItem('fotograf_access', 'granted');
         localStorage.setItem('fotograf_timestamp', Date.now());
-        window.location.href = '/?access=papiezpolak';
+        window.location.href = '/';
       } else {
         errorDiv.style.display = 'block';
         document.getElementById('password').value = '';
@@ -136,9 +135,8 @@
     window.addEventListener('load', function() {
       const access = localStorage.getItem('fotograf_access');
       const timestamp = localStorage.getItem('fotograf_timestamp');
-      
       if (access === 'granted' && timestamp && (Date.now() - parseInt(timestamp)) < 24 * 60 * 60 * 1000) {
-        window.location.href = '/?access=wasze-haslo';
+        window.location.href = '/';
       }
     });
     
