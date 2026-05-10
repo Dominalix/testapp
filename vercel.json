@@ -9,15 +9,15 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/api/index.py"
+      "dest": "api/index.py"
     },
     {
       "src": "/admin",
-      "dest": "/frontend/public/admin.html"
+      "dest": "admin.html"
     },
     {
       "src": "/",
-      "dest": "/frontend/public/index.html"
+      "dest": "index.html"
     }
   ]
 }
