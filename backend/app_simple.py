@@ -37,12 +37,24 @@ memory_store = {
 def get_app_data():
     # Try Edge Config first, fallback to memory
     try:
-        edge_config_id = os.environ.get('EDGE_CONFIG_ID')
-        if edge_config_id:
+        edge_db_url = os.environ.get('EDGE_DB')
+        if edge_db_url:
             # Try to use Edge Config if available
             import requests
+            
+            # Parse the URL to extract ID and token
+            # Format: https://edge-config.vercel.com/ecfg_l2fdae6ll1wzd9y4en3jdpbhvk0u?token=8c704ab2-155b-4f81-a4dd-909e1dfb5b9b
+            if '?' in edge_db_url:
+                base_url, params = edge_db_url.split('?', 1)
+                edge_config_id = base_url.split('/')[-1]
+                # Extract token from params
+                token_param = [p for p in params.split('&') if p.startswith('token=')]
+                edge_config_token = token_param[0].split('=')[1] if token_param else None
+            else:
+                edge_config_id = edge_db_url.split('/')[-1]
+                edge_config_token = None
+            
             headers = {}
-            edge_config_token = os.environ.get('EDGE_CONFIG_TOKEN')
             if edge_config_token:
                 headers['Authorization'] = f'Bearer {edge_config_token}'
             
@@ -50,6 +62,9 @@ def get_app_data():
             response = requests.get(url, headers=headers)
             if response.status_code == 200:
                 return response.json()
+            elif response.status_code == 404:
+                # Data doesn't exist yet, return memory store to initialize
+                return memory_store
     except Exception as e:
         print(f"Edge Config not available, using memory store: {e}")
     
@@ -58,12 +73,22 @@ def get_app_data():
 
 def save_app_data(data):
     try:
-        edge_config_id = os.environ.get('EDGE_CONFIG_ID')
-        if edge_config_id:
+        edge_db_url = os.environ.get('EDGE_DB')
+        if edge_db_url:
             # Try to save to Edge Config
             import requests
+            
+            # Parse URL to extract ID and token
+            if '?' in edge_db_url:
+                base_url, params = edge_db_url.split('?', 1)
+                edge_config_id = base_url.split('/')[-1]
+                token_param = [p for p in params.split('&') if p.startswith('token=')]
+                edge_config_token = token_param[0].split('=')[1] if token_param else None
+            else:
+                edge_config_id = edge_db_url.split('/')[-1]
+                edge_config_token = None
+            
             headers = {'Content-Type': 'application/json'}
-            edge_config_token = os.environ.get('EDGE_CONFIG_TOKEN')
             if edge_config_token:
                 headers['Authorization'] = f'Bearer {edge_config_token}'
             
