@@ -546,8 +546,8 @@ def admin():
     return send_from_directory('../frontend/public', 'admin.html')
 
 # Vercel serverless function handler
-def handler(request):
-    return app(request.environ, lambda status, headers: None)
+def handler(environ, start_response):
+    return app(environ, start_response)
 
 # Initialize database on first request in serverless environment
 @app.before_first_request
