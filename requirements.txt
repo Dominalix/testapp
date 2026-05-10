@@ -1,2 +1,2 @@
 flask>=3.0.0
-vercel-edge-config
+requests==2.31.0
