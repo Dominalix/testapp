@@ -2170,6 +2170,34 @@
       </div>`;
       }).join('');
 
+      // Zapisz sesję do localStorage
+      const chapterName = (browseChapters.find(c => String(c.id) === String(lastChapterId)) || {}).name || '';
+      saveSessionToStorage({
+        id: testSession.sessionId,
+        chapter_id: lastChapterId,
+        chapter_name: chapterName,
+        score,
+        total,
+        finished_at: new Date().toISOString(),
+        answers: testSession.answers.map(a => {
+          const q = a.question;
+          let given = '', correct_ans = '';
+          if (q.type === 'closed') {
+            const ch = (q.answers || []).find(x => x.id === a.answer_id);
+            const ca = (q.answers || []).find(x => x.is_correct);
+            given = ch ? ch.text : '';
+            correct_ans = ca ? ca.text : '';
+          } else {
+            given = a.open_text || '';
+          }
+          return {
+            question_id: q.id, question_text: q.text, type: q.type,
+            given_answer: given, correct_answer: correct_ans,
+            is_correct: a.is_correct ? 1 : 0
+          };
+        })
+      });
+
       // Przywróć oryginalne przyciski
       const resultHeader = document.querySelector('.result-header');
       resultHeader.querySelector('div[style*="display:flex"]').innerHTML = `
@@ -2461,11 +2489,70 @@
     
     // ── Stats ────────────────────────────────────────────────────────────────────
 
+    // ── LocalStorage stats helpers ────────────────────────────────────────────────
+
+    function _lsGet() {
+      try { return JSON.parse(localStorage.getItem('fotograf_stats') || '{"sessions":[],"q_stats":{}}'); }
+      catch(e) { return { sessions: [], q_stats: {} }; }
+    }
+
+    function _lsSave(data) {
+      try { localStorage.setItem('fotograf_stats', JSON.stringify(data)); } catch(e) {}
+    }
+
+    function saveSessionToStorage(session) {
+      const data = _lsGet();
+      data.sessions.unshift(session);
+      if (data.sessions.length > 200) data.sessions = data.sessions.slice(0, 200);
+      (session.answers || []).forEach(a => {
+        if (!data.q_stats[a.question_id]) {
+          data.q_stats[a.question_id] = {
+            text: a.question_text, type: a.type,
+            chapter_id: session.chapter_id, chapter_name: session.chapter_name,
+            total: 0, correct: 0
+          };
+        }
+        data.q_stats[a.question_id].total++;
+        if (a.is_correct === 1 || a.is_correct === true) data.q_stats[a.question_id].correct++;
+      });
+      _lsSave(data);
+    }
+
     async function loadStats() {
       try {
-        const res = await fetch('/api/stats');
-        const stats = await res.json();
-        renderStats(stats);
+        const data = _lsGet();
+        const sessions = data.sessions || [];
+        const qStats   = data.q_stats   || {};
+
+        const byChapter = browseChapters.map(c => {
+          const c_id = c.id;
+          const c_sess = sessions.filter(s => String(s.chapter_id) === String(c_id));
+          let total = 0, correct = 0;
+          Object.values(qStats).forEach(qs => {
+            if (String(qs.chapter_id) === String(c_id)) { total += qs.total; correct += qs.correct; }
+          });
+          return {
+            id: c_id, name: c.name,
+            test_count: c_sess.filter(s => s.finished_at).length,
+            answer_count: total, correct_count: correct
+          };
+        });
+
+        const hardest = Object.entries(qStats)
+          .filter(([, q]) => q.total >= 2)
+          .map(([id, q]) => ({ id, ...q, rate: q.correct / q.total }))
+          .sort((a, b) => a.rate - b.rate)
+          .slice(0, 5);
+
+        const totalAns  = sessions.reduce((s, sess) => s + (sess.total || 0), 0);
+        const totalCorr = sessions.reduce((s, sess) => s + (sess.score || 0), 0);
+
+        renderStats({
+          overall: { total_answers: totalAns, total_correct: totalCorr, total_sessions: sessions.filter(s => s.finished_at).length },
+          by_chapter: byChapter,
+          hardest,
+          all_sessions: sessions
+        });
       } catch (e) {
         showNotif('Błąd ładowania statystyk', 'error');
       }
@@ -2553,11 +2640,10 @@
       document.getElementById('q-modal').classList.add('open');
 
       try {
-        const res = await fetch('/api/session/' + sessionId + '/details');
-        const data = await res.json();
-        
-        const session = data.session;
-        const answers = data.answers;
+        const lsData = _lsGet();
+        const session = (lsData.sessions || []).find(s => s.id === sessionId);
+        if (!session) { document.getElementById('modal-content').innerHTML = '<div class="empty-state">Brak danych sesji</div>'; return; }
+        const answers = session.answers || [];
         const pct = session.total > 0 ? Math.round(session.score / session.total * 100) : 0;
         const color = pct >= 70 ? 'var(--green)' : pct >= 40 ? 'var(--amber)' : 'var(--red)';
         
@@ -2628,6 +2714,7 @@
               body: JSON.stringify({ secret: 'RESETASTER2137' })
             }).then(r => r.json()).then(d => {
               if (d.ok) {
+                localStorage.removeItem('fotograf_stats');
                 showNotif('Postęp zresetowany', 'success');
                 loadDashboard();
               }
