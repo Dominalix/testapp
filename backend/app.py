@@ -22,78 +22,78 @@ def get_db():
     return conn
 
 def init_db():
-    conn = get_db()
-    c = conn.cursor()
-    c.executescript('''
-        CREATE TABLE IF NOT EXISTS chapters (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE,
-            description TEXT,
-            created_at TEXT DEFAULT (datetime('now'))
-        );
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.executescript('''
+            CREATE TABLE IF NOT EXISTS chapters (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                description TEXT,
+                created_at TEXT DEFAULT (datetime('now'))
+            );
 
-        CREATE TABLE IF NOT EXISTS questions (
-            id TEXT PRIMARY KEY,
-            chapter_id INTEGER NOT NULL,
-            text TEXT NOT NULL,
-            type TEXT NOT NULL CHECK(type IN ('closed', 'open')),
-            created_at TEXT DEFAULT (datetime('now')),
-            FOREIGN KEY (chapter_id) REFERENCES chapters(id)
-        );
+            CREATE TABLE IF NOT EXISTS questions (
+                id TEXT PRIMARY KEY,
+                chapter_id INTEGER NOT NULL,
+                text TEXT NOT NULL,
+                type TEXT NOT NULL CHECK(type IN ('closed', 'open')),
+                created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (chapter_id) REFERENCES chapters(id)
+            );
 
-        CREATE TABLE IF NOT EXISTS answers (
-            id TEXT PRIMARY KEY,
-            question_id TEXT NOT NULL,
-            text TEXT NOT NULL,
-            is_correct INTEGER DEFAULT 0,
-            sort_order INTEGER DEFAULT 0,
-            FOREIGN KEY (question_id) REFERENCES questions(id)
-        );
+            CREATE TABLE IF NOT EXISTS answers (
+                id TEXT PRIMARY KEY,
+                question_id TEXT NOT NULL,
+                text TEXT NOT NULL,
+                is_correct INTEGER DEFAULT 0,
+                sort_order INTEGER DEFAULT 0,
+                FOREIGN KEY (question_id) REFERENCES questions(id)
+            );
 
-        CREATE TABLE IF NOT EXISTS open_answers (
-            id TEXT PRIMARY KEY,
-            question_id TEXT NOT NULL UNIQUE,
-            sample_answer TEXT NOT NULL,
-            FOREIGN KEY (question_id) REFERENCES questions(id)
-        );
+            CREATE TABLE IF NOT EXISTS open_answers (
+                id TEXT PRIMARY KEY,
+                question_id TEXT NOT NULL UNIQUE,
+                sample_answer TEXT NOT NULL,
+                FOREIGN KEY (question_id) REFERENCES questions(id)
+            );
 
-        CREATE TABLE IF NOT EXISTS user_answers (
-            id TEXT PRIMARY KEY,
-            question_id TEXT NOT NULL,
-            session_id TEXT,
-            answer_id TEXT,
-            open_text TEXT,
-            is_correct INTEGER,
-            answered_at TEXT DEFAULT (datetime('now')),
-            FOREIGN KEY (question_id) REFERENCES questions(id)
-        );
+            CREATE TABLE IF NOT EXISTS user_answers (
+                id TEXT PRIMARY KEY,
+                question_id TEXT NOT NULL,
+                session_id TEXT,
+                answer_id TEXT,
+                open_text TEXT,
+                is_correct INTEGER,
+                answered_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (question_id) REFERENCES questions(id)
+            );
 
-        CREATE TABLE IF NOT EXISTS sessions (
-            id TEXT PRIMARY KEY,
-            chapter_id INTEGER,
-            started_at TEXT DEFAULT (datetime('now')),
-            finished_at TEXT,
-            score INTEGER,
-            total INTEGER
-        );
+            CREATE TABLE IF NOT EXISTS sessions (
+                id TEXT PRIMARY KEY,
+                chapter_id INTEGER,
+                started_at TEXT DEFAULT (datetime('now')),
+                finished_at TEXT,
+                score INTEGER,
+                total INTEGER
+            );
 
-        INSERT OR IGNORE INTO chapters (name, description) VALUES
-            ('Technologia', 'Procesy fotograficzne, techniki i metody pracy w fotografii'),
-            ('Maszynoznawstwo', 'Aparaty fotograficzne, obiektywy, osprzęt i urządzenia'),
-            ('Materiałoznawstwo', 'Materiały światłoczułe, odczynniki chemiczne i nośniki');
-    ''')
-    conn.commit()
-    conn.close()
+            INSERT OR IGNORE INTO chapters (name, description) VALUES
+                ('Technologia', 'Procesy fotograficzne, techniki i metody pracy w fotografii'),
+                ('Maszynoznawstwo', 'Aparaty fotograficzne, obiektywy, osprzęt i urządzenia'),
+                ('Materiałoznawstwo', 'Materiały światłoczułe, odczynniki chemiczne i nośniki');
+        ''')
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Database initialization error: {e}")
+        raise
 
 # Ensure database is initialized for serverless environment
 def ensure_db_initialized():
     if os.environ.get('VERCEL'):
-        try:
-            conn = get_db()
-            conn.execute('SELECT COUNT(*) FROM chapters')
-            conn.close()
-        except sqlite3.OperationalError:
-            init_db()
+        # Always initialize database in Vercel to ensure it exists
+        init_db()
 
 # ─── Chapters ────────────────────────────────────────────────────────────────
 
@@ -158,6 +158,7 @@ def get_questions():
 
 @app.route('/api/questions', methods=['POST'])
 def create_question():
+    ensure_db_initialized()
     data = request.json
     qid = str(uuid.uuid4())
     conn = get_db()
