@@ -9,7 +9,7 @@ import math
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
 
-# For Vercel serverless environment, use /tmp for database
+# For Vercel serverless environment, use /tmp with proper initialization
 if os.environ.get('VERCEL'):
     DB_PATH = '/tmp/fotograf.db'
 else:
@@ -85,8 +85,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Ensure database is initialized for each request in serverless
-@app.before_request
+# Ensure database is initialized for serverless environment
 def ensure_db_initialized():
     if os.environ.get('VERCEL'):
         try:
@@ -100,6 +99,7 @@ def ensure_db_initialized():
 
 @app.route('/api/chapters', methods=['GET'])
 def get_chapters():
+    ensure_db_initialized()
     conn = get_db()
     chapters = conn.execute('''
         SELECT c.*, 
@@ -116,6 +116,7 @@ def get_chapters():
 
 @app.route('/api/questions', methods=['GET'])
 def get_questions():
+    ensure_db_initialized()
     chapter_id = request.args.get('chapter_id')
     conn = get_db()
     if chapter_id:
