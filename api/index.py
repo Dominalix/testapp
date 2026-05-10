@@ -4,8 +4,8 @@ import os
 # Add backend to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
-# Import of Flask app (Debug version for troubleshooting)
-from app_debug import app
+# Import of Flask app
+from app import app
 
 # Vercel serverless handler - this is the main entry point
 def handler(environ, start_response):

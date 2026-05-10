@@ -91,9 +91,23 @@ def init_db():
 
 # Ensure database is initialized for serverless environment
 def ensure_db_initialized():
-    if os.environ.get('VERCEL'):
-        # Always initialize database in Vercel to ensure it exists
-        init_db()
+    if os.environ.get('VERCEL') and not os.path.exists(DB_PATH):
+        # Try to copy the bundled database first (preserves existing questions)
+        bundled_paths = [
+            os.path.join(os.path.dirname(__file__), 'fotograf.db'),
+            '/var/task/backend/fotograf.db',
+        ]
+        copied = False
+        for src in bundled_paths:
+            if os.path.exists(src):
+                import shutil
+                shutil.copy2(src, DB_PATH)
+                print(f"Copied bundled DB from {src} to {DB_PATH}")
+                copied = True
+                break
+        if not copied:
+            # Fallback: create empty schema
+            init_db()
 
 # ─── Chapters ────────────────────────────────────────────────────────────────
 
@@ -590,7 +604,7 @@ def handler(environ, start_response):
 
 # Initialize database for serverless environments
 if os.environ.get('VERCEL'):
-    init_db()
+    ensure_db_initialized()
 
 if __name__ == '__main__':
     init_db()
