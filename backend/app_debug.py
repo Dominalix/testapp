@@ -66,6 +66,73 @@ def debug_info():
     }
     return jsonify(debug_info)
 
+@app.route('/api/add-sample-questions', methods=['POST'])
+def add_sample_questions():
+    """Add sample questions for testing"""
+    try:
+        print("🔍 DEBUG: Adding sample questions")
+        
+        sample_questions = [
+            {
+                'id': str(uuid.uuid4()),
+                'chapter_id': 1,
+                'text': 'Jaki jest podstawowy czas naświetlania w fotografii czarno-białej?',
+                'type': 'closed',
+                'created_at': datetime.now().isoformat(),
+                'answers': [
+                    {'id': str(uuid.uuid4()), 'text': '1/125 sekundy', 'is_correct': 1, 'sort_order': 0},
+                    {'id': str(uuid.uuid4()), 'text': '1/60 sekundy', 'is_correct': 0, 'sort_order': 1},
+                    {'id': str(uuid.uuid4()), 'text': '1/30 sekundy', 'is_correct': 0, 'sort_order': 2},
+                    {'id': str(uuid.uuid4()), 'text': '1/15 sekundy', 'is_correct': 0, 'sort_order': 3}
+                ]
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'chapter_id': 1,
+                'text': 'Opisz proces wywoływania fotografii czarno-białej.',
+                'type': 'open',
+                'created_at': datetime.now().isoformat(),
+                'sample_answer': 'Wywoływanie to proces chemiczny, w którym naświetlony materiał światłoczuły jest poddawany działaniu wywoływacza, co powoduje zamianę niewidocznego obrazu utajonego w emulsji na obraz widoczny.'
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'chapter_id': 2,
+                'text': 'Co oznacza skrót "aparat" w terminologii fotograficznej?',
+                'type': 'closed',
+                'created_at': datetime.now().isoformat(),
+                'answers': [
+                    {'id': str(uuid.uuid4()), 'text': 'Aparat fotograficzny', 'is_correct': 1, 'sort_order': 0},
+                    {'id': str(uuid.uuid4()), 'text': 'Obiektyw fotograficzny', 'is_correct': 0, 'sort_order': 1},
+                    {'id': str(uuid.uuid4()), 'text': 'Lampa błyskowa', 'is_correct': 0, 'sort_order': 2},
+                    {'id': str(uuid.uuid4()), 'text': 'Statyw', 'is_correct': 0, 'sort_order': 3}
+                ]
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'chapter_id': 3,
+                'text': 'Jakie są podstawowe rodzaje materiałów światłoczułych?',
+                'type': 'closed',
+                'created_at': datetime.now().isoformat(),
+                'answers': [
+                    {'id': str(uuid.uuid4()), 'text': 'Srebrowe i bromkowe', 'is_correct': 1, 'sort_order': 0},
+                    {'id': str(uuid.uuid4()), 'text': 'Cyjanowe i azotowe', 'is_correct': 0, 'sort_order': 1},
+                    {'id': str(uuid.uuid4()), 'text': 'Tlenowe i chlorowe', 'is_correct': 0, 'sort_order': 2},
+                    {'id': str(uuid.uuid4()), 'text': 'Kolorowe i czarno-białe', 'is_correct': 0, 'sort_order': 3}
+                ]
+            }
+        ]
+        
+        memory_store['questions'].extend(sample_questions)
+        print(f"🔍 DEBUG: Added {len(sample_questions)} sample questions")
+        
+        return jsonify({
+            'message': f'Added {len(sample_questions)} sample questions',
+            'total_questions': len(memory_store['questions'])
+        })
+    except Exception as e:
+        print(f"🔍 DEBUG: Error adding sample questions: {e}")
+        return jsonify({'error': str(e)}), 500
+
 # ─── Chapters ────────────────────────────────────────────────────────────────
 
 @app.route('/api/chapters', methods=['GET'])
