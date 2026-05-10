@@ -4,8 +4,8 @@ import os
 # Add backend to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
-# Import of Flask app (Edge Config simple version)
-from app_edgeconfig_simple import app
+# Import of Flask app (Simple version with fallback)
+from app_simple import app
 
 # Vercel serverless handler - this is the main entry point
 def handler(environ, start_response):
