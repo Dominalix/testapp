@@ -9,13 +9,10 @@ import math
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
 
-# Bundled DB is deployed alongside the function (via includeFiles in vercel.json)
-BUNDLED_DB = os.path.join(os.path.dirname(__file__), 'fotograf.db')
-
 if os.environ.get('VERCEL'):
     DB_PATH = '/tmp/fotograf.db'
 else:
-    DB_PATH = BUNDLED_DB
+    DB_PATH = os.path.join(os.path.dirname(__file__), 'fotograf.db')
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -93,14 +90,94 @@ def init_db():
 
 # Ensure database is initialized for serverless environment
 def ensure_db_initialized():
-    if os.environ.get('VERCEL') and not os.path.exists(DB_PATH):
-        if os.path.exists(BUNDLED_DB):
-            import shutil
-            shutil.copy2(BUNDLED_DB, DB_PATH)
-            print(f"DB skopiowana z {BUNDLED_DB} do {DB_PATH}")
-        else:
-            print(f"UWAGA: bundlowana baza nie znaleziona pod {BUNDLED_DB}, tworzę pustą")
-            init_db()
+    if not os.path.exists(DB_PATH):
+        _create_db_from_seed()
+
+def _create_db_from_seed():
+    """Create DB from bundled seed_data.py — works on Vercel without includeFiles."""
+    try:
+        from seed_data import CHAPTERS, QUESTIONS
+        conn = get_db()
+        c = conn.cursor()
+        c.executescript('''
+            CREATE TABLE IF NOT EXISTS chapters (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                description TEXT,
+                created_at TEXT DEFAULT (datetime('now'))
+            );
+            CREATE TABLE IF NOT EXISTS questions (
+                id TEXT PRIMARY KEY,
+                chapter_id INTEGER NOT NULL,
+                text TEXT NOT NULL,
+                type TEXT NOT NULL CHECK(type IN ('closed', 'open')),
+                created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (chapter_id) REFERENCES chapters(id)
+            );
+            CREATE TABLE IF NOT EXISTS answers (
+                id TEXT PRIMARY KEY,
+                question_id TEXT NOT NULL,
+                text TEXT NOT NULL,
+                is_correct INTEGER DEFAULT 0,
+                sort_order INTEGER DEFAULT 0,
+                FOREIGN KEY (question_id) REFERENCES questions(id)
+            );
+            CREATE TABLE IF NOT EXISTS open_answers (
+                id TEXT PRIMARY KEY,
+                question_id TEXT NOT NULL UNIQUE,
+                sample_answer TEXT NOT NULL,
+                FOREIGN KEY (question_id) REFERENCES questions(id)
+            );
+            CREATE TABLE IF NOT EXISTS user_answers (
+                id TEXT PRIMARY KEY,
+                question_id TEXT NOT NULL,
+                session_id TEXT,
+                answer_id TEXT,
+                open_text TEXT,
+                is_correct INTEGER,
+                answered_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (question_id) REFERENCES questions(id)
+            );
+            CREATE TABLE IF NOT EXISTS sessions (
+                id TEXT PRIMARY KEY,
+                chapter_id INTEGER,
+                started_at TEXT DEFAULT (datetime('now')),
+                finished_at TEXT,
+                score INTEGER,
+                total INTEGER
+            );
+        ''')
+        for ch in CHAPTERS:
+            c.execute(
+                'INSERT OR IGNORE INTO chapters (id, name, description) VALUES (?, ?, ?)',
+                (ch['id'], ch['name'], ch.get('description', ''))
+            )
+        for q in QUESTIONS:
+            c.execute(
+                'INSERT OR IGNORE INTO questions (id, chapter_id, text, type, created_at) VALUES (?, ?, ?, ?, ?)',
+                (q['id'], q['chapter_id'], q['text'], q['type'], q.get('created_at', ''))
+            )
+            if q['type'] == 'closed':
+                for a in q.get('answers', []):
+                    c.execute(
+                        'INSERT OR IGNORE INTO answers (id, question_id, text, is_correct, sort_order) VALUES (?, ?, ?, ?, ?)',
+                        (a['id'], q['id'], a['text'], a.get('is_correct', 0), a.get('sort_order', 0))
+                    )
+            else:
+                sa = q.get('sample_answer', '')
+                if sa:
+                    aid = str(uuid.uuid4())
+                    c.execute(
+                        'INSERT OR IGNORE INTO open_answers (id, question_id, sample_answer) VALUES (?, ?, ?)',
+                        (aid, q['id'], sa)
+                    )
+        conn.commit()
+        conn.close()
+        print(f"DB zainicjowana z seed_data: {len(QUESTIONS)} pytań")
+    except Exception as e:
+        print(f"Błąd inicjalizacji z seed_data: {e}")
+        # Fallback to empty DB
+        init_db()
 
 # ─── Chapters ────────────────────────────────────────────────────────────────
 
@@ -617,9 +694,8 @@ def admin():
 def handler(environ, start_response):
     return app(environ, start_response)
 
-# Initialize database for serverless environments
-if os.environ.get('VERCEL'):
-    ensure_db_initialized()
+# Initialize database on startup
+ensure_db_initialized()
 
 if __name__ == '__main__':
     init_db()
