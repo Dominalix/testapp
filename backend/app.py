@@ -539,11 +539,48 @@ def reset_progress():
 # For Vercel serverless functions
 @app.route('/')
 def index():
-    return send_from_directory('../frontend/public', 'index.html')
+    # Try different paths for the frontend files
+    frontend_paths = [
+        '../frontend/public/index.html',
+        'frontend/public/index.html',
+        '/var/task/frontend/public/index.html'
+    ]
+    
+    for path in frontend_paths:
+        if os.path.exists(path.replace('/index.html', '')):
+            return send_from_directory(path.replace('/index.html', ''), 'index.html')
+    
+    # Fallback: return a simple HTML response
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Fotograf App</title>
+        <meta charset="utf-8">
+    </head>
+    <body>
+        <h1>Fotograf App</h1>
+        <p>Frontend files not found. API is working.</p>
+        <p><a href="/api/chapters">View API Chapters</a></p>
+    </body>
+    </html>
+    '''
 
 @app.route('/admin')
 def admin():
-    return send_from_directory('../frontend/public', 'admin.html')
+    # Try different paths for the frontend files
+    frontend_paths = [
+        '../frontend/public/admin.html',
+        'frontend/public/admin.html',
+        '/var/task/frontend/public/admin.html'
+    ]
+    
+    for path in frontend_paths:
+        if os.path.exists(path.replace('/admin.html', '')):
+            return send_from_directory(path.replace('/admin.html', ''), 'admin.html')
+    
+    # Fallback
+    return "Admin page not found", 404
 
 # Vercel serverless function handler
 def handler(environ, start_response):
