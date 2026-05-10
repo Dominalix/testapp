@@ -9,11 +9,13 @@ import math
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
 
-# For Vercel serverless environment, use /tmp with proper initialization
+# Bundled DB is deployed alongside the function (via includeFiles in vercel.json)
+BUNDLED_DB = os.path.join(os.path.dirname(__file__), 'fotograf.db')
+
 if os.environ.get('VERCEL'):
     DB_PATH = '/tmp/fotograf.db'
 else:
-    DB_PATH = os.path.join(os.path.dirname(__file__), 'fotograf.db')
+    DB_PATH = BUNDLED_DB
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -92,26 +94,39 @@ def init_db():
 # Ensure database is initialized for serverless environment
 def ensure_db_initialized():
     if os.environ.get('VERCEL') and not os.path.exists(DB_PATH):
-        # Try to copy the bundled database first (preserves existing questions)
-        bundled_paths = [
-            os.path.join(os.path.dirname(__file__), 'fotograf.db'),
-            '/var/task/backend/fotograf.db',
-        ]
-        copied = False
-        for src in bundled_paths:
-            if os.path.exists(src):
-                import shutil
-                shutil.copy2(src, DB_PATH)
-                print(f"Copied bundled DB from {src} to {DB_PATH}")
-                copied = True
-                break
-        if not copied:
-            # Fallback: create empty schema
+        if os.path.exists(BUNDLED_DB):
+            import shutil
+            shutil.copy2(BUNDLED_DB, DB_PATH)
+            print(f"DB skopiowana z {BUNDLED_DB} do {DB_PATH}")
+        else:
+            print(f"UWAGA: bundlowana baza nie znaleziona pod {BUNDLED_DB}, tworzę pustą")
             init_db()
 
 # ─── Chapters ────────────────────────────────────────────────────────────────
 
-@app.route('/api/chapters', methods=['GET'])
+@app.route('/api/debug', methods=['GET'])
+def debug_info():
+    import glob
+    bundled_exists = os.path.exists(BUNDLED_DB)
+    tmp_exists = os.path.exists(DB_PATH)
+    q_count = 0
+    try:
+        conn = get_db()
+        q_count = conn.execute('SELECT COUNT(*) FROM questions').fetchone()[0]
+        conn.close()
+    except Exception as e:
+        q_count = f"błąd: {e}"
+    return jsonify({
+        "DB_PATH": DB_PATH,
+        "BUNDLED_DB": BUNDLED_DB,
+        "bundled_exists": bundled_exists,
+        "tmp_exists": tmp_exists,
+        "questions_in_db": q_count,
+        "VERCEL": os.environ.get('VERCEL', 'nie'),
+        "backend_files": glob.glob(os.path.join(os.path.dirname(__file__), '*'))
+    })
+
+
 def get_chapters():
     ensure_db_initialized()
     conn = get_db()
