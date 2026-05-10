@@ -549,11 +549,9 @@ def admin():
 def handler(environ, start_response):
     return app(environ, start_response)
 
-# Initialize database on first request in serverless environment
-@app.before_first_request
-def initialize_database():
-    if os.environ.get('VERCEL'):
-        init_db()
+# Initialize database for Vercel serverless environment
+if os.environ.get('VERCEL'):
+    init_db()
 
 if __name__ == '__main__':
     init_db()
